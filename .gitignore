@@ -1,0 +1,10 @@
+/target
+**/*.rs.bk
+Cargo.lock.bak
+
+# Local config + dev TLS material — never commit secrets.
+shark-gateway.toml
+*.pem
+deploy/tls/
+
+.DS_Store

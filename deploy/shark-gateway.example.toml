@@ -1,0 +1,9 @@
+# Copy to shark-gateway.toml and edit. All fields are optional; defaults shown.
+
+# UDP socket the QUIC endpoint binds to.
+listen = "0.0.0.0:4433"
+
+# TLS material (PEM). Leave both unset for a self-signed dev certificate.
+# For production, set both to a cert/key for a hostname your clients pin.
+# tls_cert = "/etc/shark-gateway/tls/cert.pem"
+# tls_key  = "/etc/shark-gateway/tls/key.pem"

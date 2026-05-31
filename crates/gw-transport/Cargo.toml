@@ -1,0 +1,18 @@
+[package]
+name = "gw-transport"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "QUIC transport for the App↔Gateway link."
+
+[dependencies]
+gw-proto = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+thiserror = { workspace = true }
+anyhow = { workspace = true }
+serde = { workspace = true }
+quinn = { version = "0.11", default-features = false, features = ["runtime-tokio", "rustls-ring", "log"] }
+rustls = { version = "0.23", default-features = false, features = ["ring", "std", "tls12"] }
+rcgen = "0.13"
+rustls-pemfile = "2"

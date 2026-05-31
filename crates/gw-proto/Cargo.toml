@@ -1,0 +1,11 @@
+[package]
+name = "gw-proto"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "App↔Gateway wire protocol for the SharkTTY keep-alive SSH gateway."
+
+[dependencies]
+serde = { workspace = true }
+postcard = { workspace = true }
+thiserror = { workspace = true }

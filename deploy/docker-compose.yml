@@ -1,0 +1,20 @@
+# One-command self-host:
+#   cp shark-gateway.example.toml shark-gateway.toml   # then edit
+#   docker compose up -d
+#
+# Run from the deploy/ directory; the build context is the repo root.
+services:
+  gateway:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    image: shark-gateway:latest
+    restart: unless-stopped
+    ports:
+      - "4433:4433/udp"
+    volumes:
+      - ./shark-gateway.toml:/etc/shark-gateway/shark-gateway.toml:ro
+      - gateway-tls:/etc/shark-gateway/tls
+
+volumes:
+  gateway-tls:

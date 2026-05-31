@@ -1,0 +1,16 @@
+[package]
+name = "gw-core"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Gateway session manager: live PTY, scrollback, detach/replay."
+
+[dependencies]
+gw-proto = { workspace = true }
+gw-ssh = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+uuid = { workspace = true }
+rand = "0.9"
+async-trait = "0.1"
+thiserror = { workspace = true }
