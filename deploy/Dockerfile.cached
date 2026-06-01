@@ -1,0 +1,35 @@
+# syntax=docker/dockerfile:1
+# shark-gateway — 缓存优化的多阶段构建（Rust）
+#
+# 通过 `podman build --volume` 挂载外部缓存目录（cargo registry / git / target）
+# 加速重复构建。target 是挂载卷，构建产物在 RUN 内 cp 到 /out，再由运行阶段 COPY。
+
+# --- 构建阶段 ---
+FROM docker.io/rust:1-bookworm AS build
+WORKDIR /src
+
+ARG GIT_COMMIT=unknown
+
+COPY . .
+
+RUN cargo build --release --bin shark-gateway \
+    && mkdir -p /out \
+    && cp target/release/shark-gateway /out/shark-gateway
+
+# --- 运行阶段 ---
+FROM docker.io/debian:bookworm-slim
+
+ARG GIT_COMMIT=unknown
+LABEL git.commit=${GIT_COMMIT}
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates tzdata \
+    && rm -rf /var/lib/apt/lists/* \
+    && useradd --system --no-create-home --shell /usr/sbin/nologin shark
+
+COPY --from=build /out/shark-gateway /usr/local/bin/shark-gateway
+
+USER shark
+# QUIC 走 UDP
+EXPOSE 4433/udp
+ENTRYPOINT ["shark-gateway", "--config", "/etc/shark-gateway/shark-gateway.toml"]

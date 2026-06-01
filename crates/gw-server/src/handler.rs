@@ -32,6 +32,14 @@ enum Outcome {
     Closed,
 }
 
+/// What [`negotiate`] produced: the live session, its entitlement, and the
+/// client's account token (kept for usage/session reporting to the control plane).
+struct Negotiated {
+    session: Arc<gw_core::Session>,
+    entitlement: Entitlement,
+    account_token: Option<Vec<u8>>,
+}
+
 /// Handle one accepted client connection start to finish.
 pub async fn handle_connection(
     manager: Arc<SessionManager>,
@@ -44,7 +52,11 @@ pub async fn handle_connection(
         mut recv,
     } = client;
 
-    let (session, entitlement) = match negotiate(&manager, hook.as_ref(), &mut send, &mut recv).await
+    let Negotiated {
+        session,
+        entitlement,
+        account_token,
+    } = match negotiate(&manager, hook.as_ref(), &mut send, &mut recv).await
     {
         Ok(Some(result)) => result,
         Ok(None) => return, // negotiation already reported an error to the client
@@ -53,6 +65,7 @@ pub async fn handle_connection(
             return;
         }
     };
+    let session_id = session.id.to_string();
 
     let meter = Arc::new(UsageMeter::default());
     let (oob_tx, oob_rx) = mpsc::channel::<ServerFrame>(16);
@@ -68,8 +81,13 @@ pub async fn handle_connection(
 
     let (bytes_in, bytes_out) = meter.totals();
     tracing::debug!(session = %session.id, bytes_in, bytes_out, "connection usage");
+    // Report this connection's metered bytes now (covers detach), so usage is
+    // captured even across resume.
+    hook.report_usage(account_token.as_deref(), &session_id, bytes_in, bytes_out)
+        .await;
 
     if matches!(outcome, Outcome::Closed) || session.is_closed() {
+        hook.session_close(account_token.as_deref(), &session_id).await;
         manager.remove(session.id);
         tracing::info!(session = %session.id, "session closed");
     } else {
@@ -84,7 +102,7 @@ async fn negotiate(
     hook: &dyn AuthHook,
     send: &mut FramedSend,
     recv: &mut FramedRecv,
-) -> Result<Option<(Arc<gw_core::Session>, Entitlement)>> {
+) -> Result<Option<Negotiated>> {
     let hello = recv.recv::<ClientFrame>().await?;
     let ClientFrame::Hello {
         version,
@@ -150,6 +168,23 @@ async fn negotiate(
         }
     };
 
+    // For a brand-new session, let the control plane enforce the concurrency
+    // cap before we tell the client it's live. Resumes reuse an already-open
+    // session, so they don't re-open.
+    if !resumed {
+        if let Err(denied) = hook
+            .session_open(account_token.as_deref(), &session.id.to_string(), &client_name)
+            .await
+        {
+            manager.remove(session.id);
+            send.send(&ServerFrame::Error {
+                message: denied.to_string(),
+            })
+            .await?;
+            return Ok(None);
+        }
+    }
+
     send.send(&ServerFrame::Hello {
         version: PROTOCOL_VERSION,
         session_id: session.id,
@@ -158,7 +193,11 @@ async fn negotiate(
     })
     .await?;
     send.send(&ServerFrame::Status(SessionStatus::Live)).await?;
-    Ok(Some((session, entitlement)))
+    Ok(Some(Negotiated {
+        session,
+        entitlement,
+        account_token,
+    }))
 }
 
 /// Connect + authenticate to the target according to the client's `AuthIntent`.

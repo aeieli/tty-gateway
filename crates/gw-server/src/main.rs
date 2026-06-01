@@ -25,10 +25,16 @@ async fn main() -> Result<()> {
     let cli = Cli::parse();
     let config = Config::load(&cli.config)?;
 
-    let hook: Arc<dyn AuthHook> = match &config.auth_webhook_url {
-        Some(url) => {
-            tracing::info!(%url, "authorizing clients via HTTP webhook");
-            Arc::new(HttpAuthHook::new(url))
+    // Prefer the control-plane base URL; fall back to the legacy webhook URL
+    // (from which a base is derived). Unset → allow everyone (self-host).
+    let base = config
+        .control_plane_url
+        .clone()
+        .or_else(|| config.auth_webhook_url.clone());
+    let hook: Arc<dyn AuthHook> = match base {
+        Some(base) => {
+            tracing::info!(%base, has_key = config.gateway_key.is_some(), "authorizing via control plane");
+            Arc::new(HttpAuthHook::new(base, config.gateway_key.clone()))
         }
         None => Arc::new(AllowAll),
     };

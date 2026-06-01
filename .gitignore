@@ -6,5 +6,6 @@ Cargo.lock.bak
 shark-gateway.toml
 *.pem
 deploy/tls/
+deploy/secret.env
 
 .DS_Store

@@ -37,6 +37,10 @@ pub struct Denied(pub String);
 
 /// Called by the gateway on each client connect. Implemented by the SaaS
 /// control-plane integration; the OSS build uses [`AllowAll`].
+///
+/// `authorize` runs on connect. The session/usage hooks let the control plane
+/// enforce concurrency and meter traffic; all three default to no-ops so the
+/// OSS [`AllowAll`] and any minimal hook need only implement `authorize`.
 #[async_trait::async_trait]
 pub trait AuthHook: Send + Sync {
     async fn authorize(
@@ -44,6 +48,32 @@ pub trait AuthHook: Send + Sync {
         client_name: &str,
         account_token: Option<&[u8]>,
     ) -> Result<Entitlement, Denied>;
+
+    /// A new (non-resumed) session is starting. The control plane may refuse it
+    /// (e.g. the account's concurrency cap is reached). Default: allow.
+    async fn session_open(
+        &self,
+        _account_token: Option<&[u8]>,
+        _session_id: &str,
+        _client_name: &str,
+    ) -> Result<(), Denied> {
+        Ok(())
+    }
+
+    /// A session has fully closed (its concurrency slot is freed). Default: no-op.
+    async fn session_close(&self, _account_token: Option<&[u8]>, _session_id: &str) {}
+
+    /// Report metered bytes for one client connection of a session. Called on
+    /// every connection end (including detach), so usage survives resume.
+    /// Default: no-op.
+    async fn report_usage(
+        &self,
+        _account_token: Option<&[u8]>,
+        _session_id: &str,
+        _bytes_in: u64,
+        _bytes_out: u64,
+    ) {
+    }
 }
 
 /// Permit every client with no limits (OSS / self-host default).
