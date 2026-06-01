@@ -7,3 +7,8 @@ listen = "0.0.0.0:4433"
 # For production, set both to a cert/key for a hostname your clients pin.
 # tls_cert = "/etc/shark-gateway/tls/cert.pem"
 # tls_key  = "/etc/shark-gateway/tls/key.pem"
+
+# Authorization webhook. Unset = allow every client (self-host). Set to an
+# authorization endpoint and each client is authorized on connect by POSTing
+# { client_name, account_token }; the reply sets its quota/bandwidth.
+# auth_webhook_url = "http://control-plane:8080/v1/authorize"

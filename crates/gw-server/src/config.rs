@@ -15,6 +15,9 @@ pub struct Config {
     pub tls_cert: Option<String>,
     /// TLS private key (PEM). Required if `tls_cert` is set.
     pub tls_key: Option<String>,
+    /// If set, each connecting client is authorized by POSTing to this URL
+    /// (an HTTP authorization webhook). Unset → allow everyone (self-host).
+    pub auth_webhook_url: Option<String>,
 }
 
 impl Default for Config {
@@ -23,6 +26,7 @@ impl Default for Config {
             listen: SocketAddr::from(([0, 0, 0, 0], gw_transport::DEFAULT_PORT)),
             tls_cert: None,
             tls_key: None,
+            auth_webhook_url: None,
         }
     }
 }

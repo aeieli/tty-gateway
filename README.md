@@ -56,7 +56,7 @@ Working end-to-end (password + private-key auth), 15 tests green. See
 - **Stage 1 — protocol + QUIC transport:** ✅ complete (TLS, framing, migration-ready; echo test).
 - **Stage 2 — SSH proxy:** ✅ password, private-key, **and delegated signing** (gateway side; client-signing is app work).
 - **Stage 3 — keep-alive + container:** ✅ core complete (scrollback, detach/replay, resume).
-- **Stage 4 — SaaS quota:** 🟡 gateway side done (auth hook, token-bucket limiter, metering); backend service pending.
+- **Stage 4 — SaaS quota:** ✅ gateway side done (auth hook + HTTP authorization webhook, token-bucket limiter, metering); control-plane backend in a separate repo.
 - **Stage 5 — productionization + billing:** ⬜ not started (payment deferred by design).
 
 ## Develop

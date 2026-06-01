@@ -96,12 +96,15 @@ quota, and bandwidth limits, with usage metering.
   (Postgres). Language TBD; talks to the gateway over the hook contract.
 **Tests**: hook rejects an over-quota user; bandwidth cap observed; usage
 counters reconcile end-to-end.
-**Status**: 🟡 Gateway side complete — `gw-core::quota` (`AuthHook` + `AllowAll`,
+**Status**: ✅ Gateway side complete — `gw-core::quota` (`AuthHook` + `AllowAll`,
 `Entitlement`, `TokenBucket`, `UsageMeter`; 5 tests) wired into the handler
 (authorize-on-connect, per-connection metering, bandwidth throttle);
-`Hello.account_token` carries the client's token. The control-plane backend that
-implements `AuthHook` lives in a **separate (private) repo**. **Remaining (public
-side)**: an `HttpAuthHook` that calls the control plane, selectable by config.
+`Hello.account_token`. `gw-server` is now lib+bin: `serve(config, hook)` lets an
+embedder choose the hook, and a built-in **`HttpAuthHook`** authorization
+webhook (`auth_webhook_url` config; POSTs `{client_name, account_token}`,
+applies the returned entitlement; 2 tests) connects it to a control plane. The
+control-plane backend that answers the webhook lives in a **separate (private)
+repo**.
 
 ## Stage 5: Productionization (+ payment integration point)
 **Goal**: Operable, observable, and ready to attach billing.
